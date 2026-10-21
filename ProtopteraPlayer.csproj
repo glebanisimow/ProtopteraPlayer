@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ProtopteraPlayer</AssemblyName>
+    <RootNamespace>ProtopteraPlayer</RootNamespace>
+    <Version>1.2.0</Version>
+    <!-- Иконка из бренд-пака (ледоруб + когти); мелкие размеры — упрощённые когти -->
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Чтение вшитой обложки (APIC) из ID3-тегов. Тянется автоматически при сборке,
+         бандлится внутрь exe — итог остаётся одним файлом. -->
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Графика бренд-пака вшивается в exe -->
+    <Resource Include="Assets\*.png" />
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
+
+</Project>
