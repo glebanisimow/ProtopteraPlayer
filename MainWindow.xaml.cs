@@ -54,14 +54,14 @@ public partial class MainWindow : Window
         try
         {
             _player.Open(new Uri(path, UriKind.Absolute));
-            TrackTitle.Text = Path.GetFileName(path);
+            ShowTrackInfo(Path.GetFileNameWithoutExtension(path), null, null);
             _hasMedia = true;
             LoadTags(path);
             Play();
         }
         catch
         {
-            TrackTitle.Text = "Ошибка открытия файла";
+            ShowTrackInfo("Ошибка открытия файла", null, null);
             _hasMedia = false;
             ShowNoCover();
             ShowFormat(null, "");
@@ -70,8 +70,8 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Читает теги через TagLib: формат/параметры потока и вшитую обложку
-    /// (ID3 APIC у mp3/wav, METADATA_BLOCK_PICTURE у flac).
+    /// Читает теги через TagLib: название/исполнитель/альбом, формат/параметры потока
+    /// и вшитую обложку (ID3 APIC у mp3/wav, METADATA_BLOCK_PICTURE у flac).
     /// </summary>
     private void LoadTags(string path)
     {
@@ -80,6 +80,12 @@ public partial class MainWindow : Window
         {
             using var tf = TagLib.File.Create(path);
             ShowFormat(Path.GetExtension(path).TrimStart('.').ToUpperInvariant(), DescribeAudio(tf.Properties));
+
+            var tag = tf.Tag;
+            string artist = string.Join(", ", (tag.Performers is { Length: > 0 } ? tag.Performers : tag.AlbumArtists)
+                .Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()));
+            ShowTrackInfo(string.IsNullOrWhiteSpace(tag.Title) ? Path.GetFileNameWithoutExtension(path) : tag.Title.Trim(),
+                          artist, tag.Album?.Trim());
 
             var pics = tf.Tag.Pictures;
             if (pics != null && pics.Length > 0)
@@ -109,6 +115,20 @@ public partial class MainWindow : Window
         }
 
         ShowNoCover();
+    }
+
+    /// <summary>Название — крупно, «Исполнитель · Альбом» — строкой ниже; дублируется в заголовок окна (панель задач).</summary>
+    private void ShowTrackInfo(string title, string? artist, string? album)
+    {
+        string sub = string.Join(" · ", new[] { artist, album }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        TrackTitle.Text = title;
+        TrackTitle.ToolTip = title;
+        TrackSubtitle.Text = sub;
+        TrackSubtitle.ToolTip = sub.Length > 0 ? sub : null;
+        TrackSubtitle.Visibility = sub.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        Title = string.IsNullOrWhiteSpace(artist) ? $"{title} — Protoptera Player" : $"{artist} — {title} — Protoptera Player";
     }
 
     /// <summary>«44.1 kHz · 16 bit» для lossless, «44.1 kHz · 320 kbps» для mp3.</summary>
@@ -189,7 +209,7 @@ public partial class MainWindow : Window
 
     private void Player_MediaFailed(object? sender, ExceptionEventArgs e)
     {
-        TrackTitle.Text = "Не удалось воспроизвести файл";
+        ShowTrackInfo("Не удалось воспроизвести файл", null, null);
         _hasMedia = false;
         _isPlaying = false;
         _timer.Stop();
